@@ -11,6 +11,7 @@ import schedule
 import time
 from fpdf import FPDF
 import matplotlib.pyplot as plt
+import threading
 
 # Ordner für die Textdatenbank
 DATABASE_FOLDER = "text_database"
@@ -99,6 +100,12 @@ def visualize_results(results):
     plt.title("Ähnlichkeit mit der Datenbank")
     plt.show()
 
+# Funktion: Scheduler starten
+def start_scheduler():
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
 # Hauptprogramm
 def main():
     print("Willkommen zur Plagiatserkennungs-App!")
@@ -160,8 +167,9 @@ if __name__ == "__main__":
     if not os.listdir(DATABASE_FOLDER):
         add_example_books()
 
-    # Starte Datenbankaktualisierung im Hintergrund
-    schedule.run_all()
+    # Starte Scheduler in separatem Thread
+    scheduler_thread = threading.Thread(target=start_scheduler, daemon=True)
+    scheduler_thread.start()
 
     # Starte die App
     main()
