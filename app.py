@@ -45,17 +45,24 @@ def download_gutenberg_book(book_id, filename):
 
 # Funktion 3: Text mit lokaler Datenbank vergleichen
 def compare_with_database(input_text):
-    files = os.listdir(DATABASE_FOLDER)
-    texts = [input_text]
-    for file in files:
-        with open(os.path.join(DATABASE_FOLDER, file), 'r', encoding='utf-8') as f:
-            texts.append(f.read())
-    
-    # Berechnung der Ähnlichkeit
-    vectorizer = TfidfVectorizer().fit_transform(texts)
-    vectors = vectorizer.toarray()
-    similarities = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
-    return dict(zip(files, similarities))
+    try:
+        files = os.listdir(DATABASE_FOLDER)
+        if not files:
+            print("Keine Dateien in der Datenbank vorhanden.")
+            return {}
+        texts = [input_text]
+        for file in files:
+            with open(os.path.join(DATABASE_FOLDER, file), 'r', encoding='utf-8') as f:
+                texts.append(f.read())
+        
+        # Berechnung der Ähnlichkeit
+        vectorizer = TfidfVectorizer().fit_transform(texts)
+        vectors = vectorizer.toarray()
+        similarities = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
+        return dict(zip(files, similarities))
+    except Exception as e:
+        print(f"Fehler beim Vergleich mit der Datenbank: {e}")
+        return {}
 
 # Erweiterung: Sprache erkennen
 def detect_language(text):
@@ -64,17 +71,6 @@ def detect_language(text):
     except Exception as e:
         print(f"Fehler bei der Spracherkennung: {e}")
         return "Unbekannt"
-
-# Erweiterung: Semantische Ähnlichkeit
-def calculate_semantic_similarity(text1, text2):
-    try:
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        embeddings = model.encode([text1, text2])
-        similarity = util.cos_sim(embeddings[0], embeddings[1])
-        return similarity.item() * 100
-    except Exception as e:
-        print(f"Fehler bei der semantischen Ähnlichkeitsberechnung: {e}")
-        return 0
 
 # Erweiterung: PDF-Text extrahieren
 def extract_text_from_pdf(file_path):
@@ -97,20 +93,6 @@ def extract_text_from_word(file_path):
         print(f"Fehler beim Extrahieren von Word-Text: {e}")
         return ""
 
-# Erweiterung: Plagiatsbericht erstellen
-def generate_report(results, output_file="report.pdf"):
-    try:
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt="Plagiatsbericht", ln=True, align="C")
-        for file, similarity in results.items():
-            pdf.cell(0, 10, txt=f"{file}: {similarity * 100:.2f}%", ln=True)
-        pdf.output(output_file)
-        print(f"Bericht gespeichert als {output_file}")
-    except Exception as e:
-        print(f"Fehler beim Erstellen des Berichts: {e}")
-
 # Erweiterung: Ergebnisse visualisieren
 def visualize_results(results):
     try:
@@ -129,8 +111,14 @@ def main():
     print("Willkommen zur Plagiatserkennungs-App!")
     try:
         while True:
-            # Text eingeben oder URL scrapen
-            option = input("Möchtest du (1) einen Text eingeben, (2) eine Webseite scrapen, (3) eine Datei hochladen oder (4) beenden? (1/2/3/4): ")
+            # Menüoptionen anzeigen
+            print("\nOptionen:")
+            print("1 - Text eingeben")
+            print("2 - Webseite scrapen")
+            print("3 - Datei hochladen")
+            print("4 - Beenden")
+            option = input("Wähle eine Option: ")
+
             if option == "1":
                 input_text = input("Gib den Text ein: ")
             elif option == "2":
@@ -139,7 +127,6 @@ def main():
                 if not input_text:
                     print("Kein Text von der Webseite erhalten.")
                     continue
-                print("Webseitentext erfolgreich extrahiert.")
             elif option == "3":
                 file_path = input("Gib den Pfad zur Datei ein: ")
                 if file_path.endswith(".pdf"):
@@ -149,11 +136,8 @@ def main():
                 else:
                     print("Dateiformat nicht unterstützt. Unterstützte Formate: .pdf, .docx")
                     continue
-                if not input_text:
-                    print("Fehler beim Verarbeiten der Datei.")
-                    continue
             elif option == "4":
-                print("Programm beendet.")
+                print("Programm wird beendet.")
                 break
             else:
                 print("Ungültige Option. Bitte versuche es erneut.")
@@ -163,7 +147,7 @@ def main():
             language = detect_language(input_text)
             print(f"Erkannte Sprache: {language}")
 
-            # Vergleich mit Datenbank
+            # Vergleich mit der Datenbank
             print("Vergleiche mit der lokalen Datenbank...")
             results = compare_with_database(input_text)
 
@@ -171,33 +155,13 @@ def main():
             if results:
                 for file, similarity in results.items():
                     print(f"Ähnlichkeit mit {file}: {similarity * 100:.2f}%")
-                generate_report(results)
                 visualize_results(results)
             else:
                 print("Keine Texte in der Datenbank gefunden.")
-
-            # Möglichkeit, neue Texte zur Datenbank hinzuzufügen
-            save_option = input("Möchtest du diesen Text zur Datenbank hinzufügen? (ja/nein): ")
-            if save_option.lower() == "ja":
-                filename = input("Gib einen Namen für die Datei an (z.B. text1.txt): ")
-                with open(os.path.join(DATABASE_FOLDER, filename), 'w', encoding='utf-8') as f:
-                    f.write(input_text)
-                print("Text erfolgreich gespeichert.")
     except KeyboardInterrupt:
         print("\nProgramm wurde manuell beendet.")
     except Exception as e:
         print(f"Ein Fehler ist aufgetreten: {e}")
 
-# Beispiel: Text aus Project Gutenberg hinzufügen
-def add_example_books():
-    print("Beispieltexte aus Project Gutenberg hinzufügen...")
-    download_gutenberg_book(84, "frankenstein.txt")
-    download_gutenberg_book(1342, "pride_and_prejudice.txt")
-    download_gutenberg_book(1661, "sherlock_holmes.txt")
-
 if __name__ == "__main__":
-    # Füge Beispielbücher zur Datenbank hinzu (optional)
-    add_example_books()
-
-    # Starte die App
     main()
