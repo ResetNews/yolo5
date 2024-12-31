@@ -16,19 +16,28 @@ os.makedirs(DATABASE_FOLDER, exist_ok=True)
 
 # Funktion 1: Scraping von Webseiten
 def scrape_text_from_url(url):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    paragraphs = soup.find_all('p')
-    text = " ".join([p.get_text() for p in paragraphs])
-    return text
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        paragraphs = soup.find_all('p')
+        text = " ".join([p.get_text() for p in paragraphs])
+        return text
+    except requests.exceptions.RequestException as e:
+        print(f"Fehler beim Abrufen der Webseite: {e}")
+        return ""
 
 # Funktion 2: Text aus Project Gutenberg herunterladen
 def download_gutenberg_book(book_id, filename):
-    url = f"https://www.gutenberg.org/files/{book_id}/{book_id}-0.txt"
-    response = requests.get(url)
-    with open(os.path.join(DATABASE_FOLDER, filename), 'w', encoding='utf-8') as file:
-        file.write(response.text)
-    print(f"Buch {book_id} heruntergeladen und gespeichert als {filename}")
+    try:
+        url = f"https://www.gutenberg.org/files/{book_id}/{book_id}-0.txt"
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        with open(os.path.join(DATABASE_FOLDER, filename), 'w', encoding='utf-8') as file:
+            file.write(response.text)
+        print(f"Buch {book_id} heruntergeladen und gespeichert als {filename}")
+    except requests.exceptions.RequestException as e:
+        print(f"Fehler beim Herunterladen des Buches: {e}")
 
 # Funktion 3: Text mit lokaler Datenbank vergleichen
 def compare_with_database(input_text):
@@ -46,48 +55,70 @@ def compare_with_database(input_text):
 
 # Erweiterung: Sprache erkennen
 def detect_language(text):
-    return detect(text)
+    try:
+        return detect(text)
+    except Exception as e:
+        print(f"Fehler bei der Spracherkennung: {e}")
+        return "Unbekannt"
 
 # Erweiterung: Semantische Ähnlichkeit
 def calculate_semantic_similarity(text1, text2):
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-    embeddings = model.encode([text1, text2])
-    similarity = util.cos_sim(embeddings[0], embeddings[1])
-    return similarity.item() * 100
+    try:
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        embeddings = model.encode([text1, text2])
+        similarity = util.cos_sim(embeddings[0], embeddings[1])
+        return similarity.item() * 100
+    except Exception as e:
+        print(f"Fehler bei der semantischen Ähnlichkeitsberechnung: {e}")
+        return 0
 
 # Erweiterung: PDF-Text extrahieren
 def extract_text_from_pdf(file_path):
-    reader = PdfReader(file_path)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text()
-    return text
+    try:
+        reader = PdfReader(file_path)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text()
+        return text
+    except Exception as e:
+        print(f"Fehler beim Extrahieren von PDF-Text: {e}")
+        return ""
 
 # Erweiterung: Word-Text extrahieren
 def extract_text_from_word(file_path):
-    doc = Document(file_path)
-    return "\n".join([p.text for p in doc.paragraphs])
+    try:
+        doc = Document(file_path)
+        return "\n".join([p.text for p in doc.paragraphs])
+    except Exception as e:
+        print(f"Fehler beim Extrahieren von Word-Text: {e}")
+        return ""
 
 # Erweiterung: Plagiatsbericht erstellen
 def generate_report(results, output_file="report.pdf"):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt="Plagiatsbericht", ln=True, align="C")
-    for file, similarity in results.items():
-        pdf.cell(0, 10, txt=f"{file}: {similarity * 100:.2f}%", ln=True)
-    pdf.output(output_file)
-    print(f"Bericht gespeichert als {output_file}")
+    try:
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.cell(200, 10, txt="Plagiatsbericht", ln=True, align="C")
+        for file, similarity in results.items():
+            pdf.cell(0, 10, txt=f"{file}: {similarity * 100:.2f}%", ln=True)
+        pdf.output(output_file)
+        print(f"Bericht gespeichert als {output_file}")
+    except Exception as e:
+        print(f"Fehler beim Erstellen des Berichts: {e}")
 
 # Erweiterung: Ergebnisse visualisieren
 def visualize_results(results):
-    files = list(results.keys())
-    similarities = [sim * 100 for sim in results.values()]
-    plt.barh(files, similarities)
-    plt.xlabel("Ähnlichkeit (%)")
-    plt.ylabel("Dateien")
-    plt.title("Ähnlichkeit mit der Datenbank")
-    plt.show()
+    try:
+        files = list(results.keys())
+        similarities = [sim * 100 for sim in results.values()]
+        plt.barh(files, similarities)
+        plt.xlabel("Ähnlichkeit (%)")
+        plt.ylabel("Dateien")
+        plt.title("Ähnlichkeit mit der Datenbank")
+        plt.show()
+    except Exception as e:
+        print(f"Fehler bei der Visualisierung: {e}")
 
 # Hauptprogramm
 def main():
@@ -100,6 +131,9 @@ def main():
     elif option == "2":
         url = input("Gib die URL der Webseite ein: ")
         input_text = scrape_text_from_url(url)
+        if not input_text:
+            print("Kein Text von der Webseite erhalten.")
+            return
         print("Webseitentext erfolgreich extrahiert.")
     elif option == "3":
         file_path = input("Gib den Pfad zur Datei ein: ")
@@ -109,6 +143,9 @@ def main():
             input_text = extract_text_from_word(file_path)
         else:
             print("Dateiformat nicht unterstützt. Unterstützte Formate: .pdf, .docx")
+            return
+        if not input_text:
+            print("Fehler beim Verarbeiten der Datei.")
             return
     else:
         print("Ungültige Option. Beende das Programm.")
@@ -151,4 +188,7 @@ if __name__ == "__main__":
         add_example_books()
 
     # Starte die App
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("Programm beendet.")
