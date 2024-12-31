@@ -127,58 +127,61 @@ def visualize_results(results):
 # Hauptprogramm
 def main():
     print("Willkommen zur Plagiatserkennungs-App!")
-    
-    # Text eingeben oder URL scrapen
-    option = input("Möchtest du (1) einen Text eingeben, (2) eine Webseite scrapen oder (3) eine Datei hochladen? (1/2/3): ")
-    if option == "1":
-        input_text = input("Gib den Text ein: ")
-    elif option == "2":
-        url = input("Gib die URL der Webseite ein: ")
-        input_text = scrape_text_from_url(url)
-        if not input_text:
-            print("Kein Text von der Webseite erhalten.")
-            return
-        print("Webseitentext erfolgreich extrahiert.")
-    elif option == "3":
-        file_path = input("Gib den Pfad zur Datei ein: ")
-        if file_path.endswith(".pdf"):
-            input_text = extract_text_from_pdf(file_path)
-        elif file_path.endswith(".docx"):
-            input_text = extract_text_from_word(file_path)
+    while True:
+        # Text eingeben oder URL scrapen
+        option = input("Möchtest du (1) einen Text eingeben, (2) eine Webseite scrapen, (3) eine Datei hochladen oder (4) beenden? (1/2/3/4): ")
+        if option == "1":
+            input_text = input("Gib den Text ein: ")
+        elif option == "2":
+            url = input("Gib die URL der Webseite ein: ")
+            input_text = scrape_text_from_url(url)
+            if not input_text:
+                print("Kein Text von der Webseite erhalten.")
+                continue
+            print("Webseitentext erfolgreich extrahiert.")
+        elif option == "3":
+            file_path = input("Gib den Pfad zur Datei ein: ")
+            if file_path.endswith(".pdf"):
+                input_text = extract_text_from_pdf(file_path)
+            elif file_path.endswith(".docx"):
+                input_text = extract_text_from_word(file_path)
+            else:
+                print("Dateiformat nicht unterstützt. Unterstützte Formate: .pdf, .docx")
+                continue
+            if not input_text:
+                print("Fehler beim Verarbeiten der Datei.")
+                continue
+        elif option == "4":
+            print("Programm beendet.")
+            break
         else:
-            print("Dateiformat nicht unterstützt. Unterstützte Formate: .pdf, .docx")
-            return
-        if not input_text:
-            print("Fehler beim Verarbeiten der Datei.")
-            return
-    else:
-        print("Ungültige Option. Beende das Programm.")
-        return
+            print("Ungültige Option. Bitte versuche es erneut.")
+            continue
 
-    # Sprache erkennen
-    language = detect_language(input_text)
-    print(f"Erkannte Sprache: {language}")
+        # Sprache erkennen
+        language = detect_language(input_text)
+        print(f"Erkannte Sprache: {language}")
 
-    # Vergleich mit Datenbank
-    print("Vergleiche mit der lokalen Datenbank...")
-    results = compare_with_database(input_text)
+        # Vergleich mit Datenbank
+        print("Vergleiche mit der lokalen Datenbank...")
+        results = compare_with_database(input_text)
 
-    # Ergebnisse anzeigen
-    if results:
-        for file, similarity in results.items():
-            print(f"Ähnlichkeit mit {file}: {similarity * 100:.2f}%")
-        generate_report(results)
-        visualize_results(results)
-    else:
-        print("Keine Texte in der Datenbank gefunden.")
+        # Ergebnisse anzeigen
+        if results:
+            for file, similarity in results.items():
+                print(f"Ähnlichkeit mit {file}: {similarity * 100:.2f}%")
+            generate_report(results)
+            visualize_results(results)
+        else:
+            print("Keine Texte in der Datenbank gefunden.")
 
-    # Möglichkeit, neue Texte zur Datenbank hinzuzufügen
-    save_option = input("Möchtest du diesen Text zur Datenbank hinzufügen? (ja/nein): ")
-    if save_option.lower() == "ja":
-        filename = input("Gib einen Namen für die Datei an (z.B. text1.txt): ")
-        with open(os.path.join(DATABASE_FOLDER, filename), 'w', encoding='utf-8') as f:
-            f.write(input_text)
-        print("Text erfolgreich gespeichert.")
+        # Möglichkeit, neue Texte zur Datenbank hinzuzufügen
+        save_option = input("Möchtest du diesen Text zur Datenbank hinzufügen? (ja/nein): ")
+        if save_option.lower() == "ja":
+            filename = input("Gib einen Namen für die Datei an (z.B. text1.txt): ")
+            with open(os.path.join(DATABASE_FOLDER, filename), 'w', encoding='utf-8') as f:
+                f.write(input_text)
+            print("Text erfolgreich gespeichert.")
 
 # Beispiel: Text aus Project Gutenberg hinzufügen
 def add_example_books():
