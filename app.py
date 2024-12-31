@@ -29,11 +29,15 @@ def scrape_text_from_url(url):
 
 # Funktion 2: Text aus Project Gutenberg herunterladen
 def download_gutenberg_book(book_id, filename):
+    file_path = os.path.join(DATABASE_FOLDER, filename)
+    if os.path.exists(file_path):
+        print(f"Buch {book_id} existiert bereits als {filename}")
+        return
     try:
         url = f"https://www.gutenberg.org/files/{book_id}/{book_id}-0.txt"
         response = requests.get(url, timeout=10)
         response.raise_for_status()
-        with open(os.path.join(DATABASE_FOLDER, filename), 'w', encoding='utf-8') as file:
+        with open(file_path, 'w', encoding='utf-8') as file:
             file.write(response.text)
         print(f"Buch {book_id} heruntergeladen und gespeichert als {filename}")
     except requests.exceptions.RequestException as e:
@@ -181,11 +185,11 @@ def add_example_books():
     print("Beispieltexte aus Project Gutenberg hinzufügen...")
     download_gutenberg_book(84, "frankenstein.txt")
     download_gutenberg_book(1342, "pride_and_prejudice.txt")
+    download_gutenberg_book(1661, "sherlock_holmes.txt")
 
 if __name__ == "__main__":
     # Füge Beispielbücher zur Datenbank hinzu (optional)
-    if not os.listdir(DATABASE_FOLDER):
-        add_example_books()
+    add_example_books()
 
     # Starte die App
     try:
