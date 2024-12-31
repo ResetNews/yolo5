@@ -7,11 +7,8 @@ from langdetect import detect
 from sentence_transformers import SentenceTransformer, util
 from PyPDF2 import PdfReader
 from docx import Document
-import schedule
-import time
 from fpdf import FPDF
 import matplotlib.pyplot as plt
-import threading
 
 # Ordner für die Textdatenbank
 DATABASE_FOLDER = "text_database"
@@ -71,14 +68,6 @@ def extract_text_from_word(file_path):
     doc = Document(file_path)
     return "\n".join([p.text for p in doc.paragraphs])
 
-# Erweiterung: Datenbank automatisch aktualisieren
-def update_database():
-    print("Aktualisiere die Textdatenbank...")
-    # Beispiel: Hinzufügen eines weiteren Buches aus Project Gutenberg
-    download_gutenberg_book(1661, "sherlock_holmes.txt")  # Sherlock Holmes
-
-schedule.every().day.at("03:00").do(update_database)
-
 # Erweiterung: Plagiatsbericht erstellen
 def generate_report(results, output_file="report.pdf"):
     pdf = FPDF()
@@ -99,12 +88,6 @@ def visualize_results(results):
     plt.ylabel("Dateien")
     plt.title("Ähnlichkeit mit der Datenbank")
     plt.show()
-
-# Funktion: Scheduler starten mit Stop-Event
-def start_scheduler(stop_event):
-    while not stop_event.is_set():
-        schedule.run_pending()
-        time.sleep(1)
 
 # Hauptprogramm
 def main():
@@ -167,15 +150,5 @@ if __name__ == "__main__":
     if not os.listdir(DATABASE_FOLDER):
         add_example_books()
 
-    # Stop-Event für den Scheduler erstellen
-    stop_event = threading.Event()
-    scheduler_thread = threading.Thread(target=start_scheduler, args=(stop_event,), daemon=True)
-    scheduler_thread.start()
-
-    try:
-        # Starte die App
-        main()
-    finally:
-        # Scheduler stoppen
-        stop_event.set()
-        scheduler_thread.join()
+    # Starte die App
+    main()
