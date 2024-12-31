@@ -100,9 +100,9 @@ def visualize_results(results):
     plt.title("Ähnlichkeit mit der Datenbank")
     plt.show()
 
-# Funktion: Scheduler starten
-def start_scheduler():
-    while True:
+# Funktion: Scheduler starten mit Stop-Event
+def start_scheduler(stop_event):
+    while not stop_event.is_set():
         schedule.run_pending()
         time.sleep(1)
 
@@ -167,9 +167,15 @@ if __name__ == "__main__":
     if not os.listdir(DATABASE_FOLDER):
         add_example_books()
 
-    # Starte Scheduler in separatem Thread
-    scheduler_thread = threading.Thread(target=start_scheduler, daemon=True)
+    # Stop-Event für den Scheduler erstellen
+    stop_event = threading.Event()
+    scheduler_thread = threading.Thread(target=start_scheduler, args=(stop_event,), daemon=True)
     scheduler_thread.start()
 
-    # Starte die App
-    main()
+    try:
+        # Starte die App
+        main()
+    finally:
+        # Scheduler stoppen
+        stop_event.set()
+        scheduler_thread.join()
